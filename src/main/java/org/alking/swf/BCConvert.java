@@ -74,4 +74,6 @@ public class BCConvert {
 
         return new String(c);
     }
+
+    private BCConvert(){}
 }
