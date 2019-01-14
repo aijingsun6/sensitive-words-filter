@@ -6,47 +6,26 @@ import com.github.promeg.pinyinhelper.Pinyin;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DFANode {
+class DFANode {
 
-    /**
-     * 节点字符，可以是字母，可以是汉字，也可是是别的字
-     */
     public char c;
 
-    /**
-     * 小写字符
-     */
     public char lower;
 
-    /**
-     * 半角字符
-     */
     public char dbc;
 
-    /**
-     * char map
-     */
-    public final Map<Character, DFANode> cMap = new HashMap<>();
+    public Map<Character, DFANode> cMap;
 
-    /**
-     * string map
-     * pinyin -> DFANode
-     */
-    public final Map<String, DFANode> sMap = new HashMap<>();
+    private final Object cMapLock = new Object();
 
-    /**
-     * 父节点
-     */
+    public Map<String, DFANode> sMap;
+
+    private final Object sMapLock = new Object();
+
     public DFANode parent;
 
-    /**
-     * 是否是叶子节点
-     */
     public boolean leaf;
 
-    /**
-     * 如果是汉字，那么就会有拼音
-     */
     public String pinyin = null;
 
     public char simple;
@@ -54,19 +33,34 @@ public class DFANode {
     public int score = 0;
 
     public DFANode getNode(char c) {
-        return this.cMap.get(c);
+        synchronized (cMapLock) {
+            return this.cMap.get(c);
+        }
     }
 
     public DFANode getNode(String s) {
-        return this.sMap.get(s);
+        synchronized (sMapLock) {
+            return this.sMap.get(s);
+        }
     }
 
     public void putNode(char c, DFANode node) {
+        synchronized (cMapLock) {
+            if (this.cMap == null) {
+                this.cMap = new HashMap<>();
+            }
+        }
+
         this.cMap.put(c, node);
         node.parent = this;
     }
 
     public void putNode(String s, DFANode node) {
+        synchronized (sMapLock) {
+            if (this.sMap == null) {
+                this.sMap = new HashMap<>();
+            }
+        }
         this.sMap.put(s, node);
         node.parent = this;
     }
@@ -74,7 +68,7 @@ public class DFANode {
     public DFANode(char c, boolean leaf, int score) {
         this.c = c;
         this.leaf = leaf;
-        this.score = score;
+        this.score = leaf ? score : 0;
         this.lower = Character.toLowerCase(c);
         this.dbc = BCConvert.sbc2dbc(c);
         if (Pinyin.isChinese(c)) {
@@ -83,9 +77,6 @@ public class DFANode {
         }
     }
 
-    /**
-     * 简繁体是否一致
-     */
     public boolean simpleSame() {
         return c == simple;
     }
@@ -97,5 +88,6 @@ public class DFANode {
     public boolean dbcSame() {
         return c == dbc;
     }
+
 }
 

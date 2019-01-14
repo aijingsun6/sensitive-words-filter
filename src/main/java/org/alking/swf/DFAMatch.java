@@ -6,7 +6,7 @@ public class DFAMatch {
 
     private int end;
 
-    private DFANode match;
+    private DFANode matched;
 
     public int getStart() {
         return start;
@@ -24,20 +24,20 @@ public class DFAMatch {
         this.end = end;
     }
 
-    public DFANode getMatch() {
-        return match;
+    public DFANode getMatched() {
+        return matched;
     }
 
-    public void setMatch(DFANode match) {
-        this.match = match;
+    public void setMatched(DFANode matched) {
+        this.matched = matched;
     }
 
     public DFAMatch() {
     }
 
-    public DFAMatch(int start, int end, DFANode match) {
+    public DFAMatch(int start, int end, DFANode matched) {
         this.start = start;
         this.end = end;
-        this.match = match;
+        this.matched = matched;
     }
 }
