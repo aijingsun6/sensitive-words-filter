@@ -40,4 +40,14 @@ public class DFAMatch {
         this.end = end;
         this.matched = matched;
     }
+
+    public String getWord() {
+        StringBuilder sb = new StringBuilder();
+        DFANode n = this.matched;
+        while (n != null) {
+            sb.append(n.c);
+            n = n.parent;
+        }
+        return sb.reverse().toString();
+    }
 }

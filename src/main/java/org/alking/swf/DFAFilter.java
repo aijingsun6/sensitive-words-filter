@@ -2,6 +2,9 @@ package org.alking.swf;
 
 import java.util.*;
 
+/**
+ *
+ */
 public class DFAFilter {
 
     private final Map<Character, DFANode> cMap = new HashMap<>();
@@ -10,34 +13,22 @@ public class DFAFilter {
 
     private final Set<Character> stopWordSet = new HashSet<>();
 
-    private boolean pinyin = true;
+    private boolean supportPinyin = false;
 
     private boolean ignoreCase = false;
 
-    private boolean ignoreSimple = true;
+    private boolean supportSimple = false;
 
-    private boolean ignoreDbc = true;
+    private boolean supportDbc = false;
 
-    private boolean stopWord = true;
+    private boolean supportStopWord = false;
 
-    public Map<Character, DFANode> getcMap() {
-        return cMap;
+    public boolean isSupportPinyin() {
+        return supportPinyin;
     }
 
-    public Map<String, DFANode> getsMap() {
-        return sMap;
-    }
-
-    public Set<Character> getStopWordSet() {
-        return stopWordSet;
-    }
-
-    public boolean isPinyin() {
-        return pinyin;
-    }
-
-    public void setPinyin(boolean pinyin) {
-        this.pinyin = pinyin;
+    public void setSupportPinyin(boolean supportPinyin) {
+        this.supportPinyin = supportPinyin;
     }
 
     public boolean isIgnoreCase() {
@@ -48,40 +39,40 @@ public class DFAFilter {
         this.ignoreCase = ignoreCase;
     }
 
-    public boolean isIgnoreSimple() {
-        return ignoreSimple;
+    public boolean isSupportSimple() {
+        return supportSimple;
     }
 
-    public void setIgnoreSimple(boolean ignoreSimple) {
-        this.ignoreSimple = ignoreSimple;
+    public void setSupportSimple(boolean supportSimple) {
+        this.supportSimple = supportSimple;
     }
 
-    public boolean isIgnoreDbc() {
-        return ignoreDbc;
+    public boolean isSupportDbc() {
+        return supportDbc;
     }
 
-    public void setIgnoreDbc(boolean ignoreDbc) {
-        this.ignoreDbc = ignoreDbc;
+    public void setSupportDbc(boolean supportDbc) {
+        this.supportDbc = supportDbc;
     }
 
-    public boolean isStopWord() {
-        return stopWord;
+    public boolean isSupportStopWord() {
+        return supportStopWord;
     }
 
-    public void setStopWord(boolean stopWord) {
-        this.stopWord = stopWord;
+    public void setSupportStopWord(boolean supportStopWord) {
+        this.supportStopWord = supportStopWord;
+    }
+
+    public Map<Character, DFANode> getcMap() {
+        return cMap;
+    }
+
+    public Map<String, DFANode> getsMap() {
+        return sMap;
     }
 
     public DFAFilter() {
 
-    }
-
-    public DFAFilter(boolean pinyin, boolean ignoreCase, boolean ignoreSimple, boolean ignoreDbc, boolean stopWord) {
-        this.pinyin = pinyin;
-        this.ignoreCase = ignoreCase;
-        this.ignoreSimple = ignoreSimple;
-        this.ignoreDbc = ignoreDbc;
-        this.stopWord = stopWord;
     }
 
     private static boolean isEmpty(String s) {
@@ -89,6 +80,9 @@ public class DFAFilter {
     }
 
     public void setStopWord(String word) {
+        if (!supportStopWord) {
+            throw new IllegalStateException("stop word is not support");
+        }
         this.stopWordSet.clear();
         char[] chars = word.toCharArray();
         for (char c : chars) {
@@ -96,71 +90,108 @@ public class DFAFilter {
         }
     }
 
-    public void putWord(String word, int score) {
+    public void putWord(final String word, final int score) {
         if (isEmpty(word)) {
             return;
         }
 
-        char[] chars = word.toCharArray();
-        putChars(null, chars, 0, score);
+        putWord(null, word, 0, score);
     }
 
-    private void putChars(DFANode acc, char[] chars, int idx, int score) {
-        boolean last = idx == (chars.length - 1);
-        char c = chars[idx];
-        if (stopWord && this.stopWordSet.contains(c)) {
-
+    private void putWord(final DFANode acc, final String word, final int idx, final int score) {
+        final boolean last = idx == word.length() - 1;
+        final char c = word.charAt(idx);
+        if (supportStopWord && stopWordSet.contains(c)) {
+            // c is stop word
             if (last && acc != null) {
                 acc.leaf = true;
                 acc.score = score;
             } else if (!last) {
-                putChars(acc, chars, idx + 1, score);
+                putWord(acc, word, idx + 1, score);
             }
             return;
         }
-
+        // c is not stop word
         DFANode node = new DFANode(c, last, score);
         if (acc == null) {
 
-            this.cMap.put( c,node);
+            this.cMap.put(c, node);
 
-            if (this.ignoreSimple && node.simple != 0 && !node.simpleSame()) {
-               this.cMap.put( node.simple,node);
+            if (this.supportSimple && node.simple != 0 && !node.simpleSame()) {
+                this.cMap.put(node.simple, node);
             }
 
-            if (this.pinyin && !isEmpty(node.pinyin)) {
-                this.sMap.put(node.pinyin,node);
+            if (this.supportPinyin && !isEmpty(node.pinyin)) {
+                this.sMap.put(node.pinyin, node);
             }
 
-            if(this.ignoreDbc && !node.dbcSame()){
-                this.cMap.put(node.dbc,node);
+            if (this.supportDbc && !node.dbcSame()) {
+                this.cMap.put(node.dbc, node);
             }
 
-            if(this.ignoreCase && !node.lowerSame()){
-                this.cMap.put(node.lower,node);
+            if (this.ignoreCase && !node.lowerSame()) {
+                this.cMap.put(node.lower, node);
             }
 
-        }else {
+        } else {
             acc.putNode(c, node);
 
-            if (this.ignoreSimple && node.simple != 0 && !node.simpleSame()) {
+            if (this.supportSimple && node.simple != 0 && !node.simpleSame()) {
                 acc.putNode(node.simple, node);
             }
 
-            if (this.pinyin && !isEmpty(node.pinyin)) {
+            if (this.supportPinyin && !isEmpty(node.pinyin)) {
                 acc.putNode(node.pinyin, node);
             }
 
-            if(this.ignoreDbc && !node.dbcSame()){
-                acc.putNode(node.dbc,node);
+            if (this.supportDbc && !node.dbcSame()) {
+                acc.putNode(node.dbc, node);
             }
 
-            if(this.ignoreCase && !node.lowerSame()){
-                acc.putNode(node.lower,node);
+            if (this.ignoreCase && !node.lowerSame()) {
+                acc.putNode(node.lower, node);
             }
         }
-        if(!last){
-            putChars(node,chars,idx+1,score);
+        if (!last) {
+            putWord(node, word, idx + 1, score);
         }
     }
+
+    public List<DFAMatch> matchWord(final String word) {
+        if (isEmpty(word)) {
+            return Collections.emptyList();
+        }
+
+        char[] chars = word.toCharArray();
+
+
+        return null;
+    }
+
+    private DFANode firstNode(char c) {
+
+
+        return null;
+
+    }
+
+    private void matchChars(final char[] chars, int idx, final DFANode prev, final int start, final List<DFAMatch> acc) {
+
+        if (prev != null && prev.leaf) {
+            DFAMatch match = new DFAMatch(start, idx - 1, prev);
+            acc.add(match);
+        }
+
+        if (idx > chars.length - 1) {
+            // reach end
+            return;
+        }
+        if (prev == null) {
+            return;
+        }
+
+
+    }
+
+
 }

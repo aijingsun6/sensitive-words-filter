@@ -65,6 +65,10 @@ class DFANode {
         node.parent = this;
     }
 
+    public DFANode(char c) {
+        this(c, false, 0);
+    }
+
     public DFANode(char c, boolean leaf, int score) {
         this.c = c;
         this.leaf = leaf;
