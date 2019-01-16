@@ -8,11 +8,11 @@ import java.util.Map;
 
 class DFANode {
 
-    public char c;
+    protected char c;
 
-    public char lower;
+    protected char lower;
 
-    public char dbc;
+    protected char dbc;
 
     private Map<Character, DFANode> cMap;
 
@@ -22,15 +22,15 @@ class DFANode {
 
     private final Object sMapLock = new Object();
 
-    public DFANode parent;
+    protected DFANode parent;
 
-    public boolean leaf;
+    protected boolean leaf;
 
-    public String pinyin = null;
+    protected String pinyin = null;
 
-    public char simple;
+    protected char simple;
 
-    public int score = 0;
+    protected int score = 0;
 
     public DFANode getNode(char c) {
         synchronized (cMapLock) {

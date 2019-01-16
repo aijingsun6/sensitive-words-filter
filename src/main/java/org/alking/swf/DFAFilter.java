@@ -175,35 +175,21 @@ public class DFAFilter {
 
 
 
-
-    class Match {
-
-        DFANode node;
-
-        int size;
-
-        Match(DFANode node, int size) {
-            this.node = node;
-            this.size = size;
-        }
-    }
-
-
-    protected List<Match> findMatch(final DFANode prev,final String word, final int start){
-        List<Match> acc = new ArrayList<>();
+    protected List<DFAMatch> findMatch(final DFANode prev,final String word, final int start){
+        List<DFAMatch> acc = new ArrayList<>();
         if(start > word.length() - 1){
             return acc;
         }
         final char c = word.charAt(start);
         if(supportStopWord & stopWordSet.contains(c)){
-            acc.add(new Match(prev,1));
+            acc.add(new DFAMatch(start,start,prev));
             return acc;
         }
 
         if(prev == null){
 
             if(cMap.containsKey(c)){
-                acc.add( new Match(cMap.get(c),1));
+                acc.add( new DFAMatch(start,start,cMap.get(c)));
             }
 
             if(supportPinyin){
@@ -221,8 +207,10 @@ public class DFAFilter {
                         sb.append(Character.toUpperCase(t));
                         sum ++;
                         if(sMap.containsKey(sb.toString())){
-                            acc.add( new Match(sMap.get(sb.toString()),sum));
+                            acc.add( new DFAMatch(start,start+sum-1,sMap.get(sb.toString())));
                         }
+                    }else {
+                        break;
                     }
                 }
             }
@@ -230,21 +218,21 @@ public class DFAFilter {
             if(ignoreCase && Character.isUpperCase(c)){
                 char lower = Character.toLowerCase(c);
                 if(cMap.containsKey(lower)){
-                    acc.add(new Match(cMap.get(lower),1));
+                    acc.add(new DFAMatch(start,start, cMap.get(lower)));
                 }
             }
 
             if(supportSimple){
                 char simple =  ZhConverterUtil.convertToSimple(String.valueOf(c)).toCharArray()[0];
                 if(simple != c && cMap.containsKey(simple)){
-                    acc.add(new Match(cMap.get(simple),1));
+                    acc.add(new DFAMatch(start,start, cMap.get(simple)));
                 }
             }
 
             if(supportDbc){
                 char dbc = BCConvert.sbc2dbc(c);
                 if(dbc != c && cMap.containsKey(dbc)){
-                    acc.add(new Match(cMap.get(dbc),1));
+                    acc.add(new DFAMatch(start,start,cMap.get(dbc)));
                 }
             }
 
@@ -253,7 +241,7 @@ public class DFAFilter {
         // prev is not null
         DFANode node = prev.getNode(c);
         if(node != null){
-            acc.add( new Match(node,1));
+            acc.add( new DFAMatch(start,start,node));
         }
         if(supportPinyin){
             int sum = 0;
@@ -271,8 +259,10 @@ public class DFAFilter {
                     sum ++;
                     node = prev.getNode(sb.toString());
                     if(node != null){
-                        acc.add( new Match(node,sum));
+                        acc.add( new DFAMatch(start,start+sum-1, node));
                     }
+                }else {
+                    break;
                 }
             }
         }
@@ -281,7 +271,7 @@ public class DFAFilter {
             char lower = Character.toLowerCase(c);
             node = prev.getNode(lower);
             if(node != null){
-                acc.add(new Match(node,1));
+                acc.add(new DFAMatch(start,start,node));
             }
         }
 
@@ -289,7 +279,7 @@ public class DFAFilter {
             char simple =  ZhConverterUtil.convertToSimple(String.valueOf(c)).toCharArray()[0];
             node = prev.getNode(simple);
             if(simple != c && node != null){
-                acc.add(new Match(node,1));
+                acc.add(new DFAMatch(start,start,node));
             }
         }
 
@@ -297,7 +287,7 @@ public class DFAFilter {
             char dbc = BCConvert.sbc2dbc(c);
             node = prev.getNode(dbc);
             if(dbc != c && node != null){
-                acc.add(new Match(node,1));
+                acc.add(new DFAMatch(start,start,node));
             }
         }
         return acc;
@@ -314,10 +304,10 @@ public class DFAFilter {
             // reach end
             return;
         }
+
         if (prev == null) {
             return;
         }
-
 
     }
 
