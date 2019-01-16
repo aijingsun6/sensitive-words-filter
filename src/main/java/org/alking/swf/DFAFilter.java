@@ -167,22 +167,38 @@ public class DFAFilter {
         }
 
 
+        List<DFAMatch> acc = new ArrayList<>();
+        for(int i = 0; i < word.length();i++){
+            matchWord2(null,word,i,i,acc);
+        }
+        return acc;
+    }
 
-
-
-        return null;
+    private void matchWord2(final DFAMatch prev, final String word, final int start,final int originStart,final List<DFAMatch> acc){
+        if(start > word.length()-1){
+            return;
+        }
+        List<DFAMatch> findList = findMatch(prev,word,start);
+        if(!findList.isEmpty()){
+            for(DFAMatch match: findList){
+                if(match.getMatched().leaf){
+                    acc.add(new DFAMatch(originStart,match.getEnd(),match.getMatched()));
+                }
+                matchWord2(match,word,match.getEnd()+1,originStart,acc);
+            }
+        }
     }
 
 
 
-    protected List<DFAMatch> findMatch(final DFANode prev,final String word, final int start){
+    protected List<DFAMatch> findMatch(final DFAMatch prev,final String word, final int start){
         List<DFAMatch> acc = new ArrayList<>();
         if(start > word.length() - 1){
             return acc;
         }
         final char c = word.charAt(start);
         if(supportStopWord & stopWordSet.contains(c)){
-            acc.add(new DFAMatch(start,start,prev));
+            acc.add(new DFAMatch(start,start,prev.getMatched()));
             return acc;
         }
 
@@ -239,7 +255,7 @@ public class DFAFilter {
             return acc;
         }
         // prev is not null
-        DFANode node = prev.getNode(c);
+        DFANode node = prev.getMatched().getNode(c);
         if(node != null){
             acc.add( new DFAMatch(start,start,node));
         }
@@ -257,7 +273,7 @@ public class DFAFilter {
                 }else if(Character.isLetter(t)){
                     sb.append(Character.toUpperCase(t));
                     sum ++;
-                    node = prev.getNode(sb.toString());
+                    node = prev.getMatched().getNode(sb.toString());
                     if(node != null){
                         acc.add( new DFAMatch(start,start+sum-1, node));
                     }
@@ -269,7 +285,7 @@ public class DFAFilter {
 
         if(ignoreCase && Character.isUpperCase(c)){
             char lower = Character.toLowerCase(c);
-            node = prev.getNode(lower);
+            node = prev.getMatched().getNode(lower);
             if(node != null){
                 acc.add(new DFAMatch(start,start,node));
             }
@@ -277,7 +293,7 @@ public class DFAFilter {
 
         if(supportSimple){
             char simple =  ZhConverterUtil.convertToSimple(String.valueOf(c)).toCharArray()[0];
-            node = prev.getNode(simple);
+            node = prev.getMatched().getNode(simple);
             if(simple != c && node != null){
                 acc.add(new DFAMatch(start,start,node));
             }
@@ -285,30 +301,12 @@ public class DFAFilter {
 
         if(supportDbc){
             char dbc = BCConvert.sbc2dbc(c);
-            node = prev.getNode(dbc);
+            node = prev.getMatched().getNode(dbc);
             if(dbc != c && node != null){
                 acc.add(new DFAMatch(start,start,node));
             }
         }
         return acc;
-    }
-
-    private void matchWord(final char[] chars, int idx, final DFANode prev, final int start, final List<DFAMatch> acc) {
-
-        if (prev != null && prev.leaf) {
-            DFAMatch match = new DFAMatch(start, idx - 1, prev);
-            acc.add(match);
-        }
-
-        if (idx > chars.length - 1) {
-            // reach end
-            return;
-        }
-
-        if (prev == null) {
-            return;
-        }
-
     }
 
 

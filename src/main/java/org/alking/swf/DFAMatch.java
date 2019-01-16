@@ -50,4 +50,9 @@ public class DFAMatch {
         }
         return sb.reverse().toString();
     }
+
+    public int size(){
+        return end - start + 1;
+    }
+
 }
