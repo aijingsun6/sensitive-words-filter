@@ -14,11 +14,11 @@ class DFANode {
 
     public char dbc;
 
-    public Map<Character, DFANode> cMap;
+    private Map<Character, DFANode> cMap;
 
     private final Object cMapLock = new Object();
 
-    public Map<String, DFANode> sMap;
+    private Map<String, DFANode> sMap;
 
     private final Object sMapLock = new Object();
 
@@ -34,12 +34,18 @@ class DFANode {
 
     public DFANode getNode(char c) {
         synchronized (cMapLock) {
+            if(cMap == null){
+                return null;
+            }
             return this.cMap.get(c);
         }
     }
 
     public DFANode getNode(String s) {
         synchronized (sMapLock) {
+            if(sMap == null){
+                return null;
+            }
             return this.sMap.get(s);
         }
     }
@@ -49,9 +55,8 @@ class DFANode {
             if (this.cMap == null) {
                 this.cMap = new HashMap<>();
             }
+            this.cMap.put(c, node);
         }
-
-        this.cMap.put(c, node);
         node.parent = this;
     }
 
@@ -60,8 +65,8 @@ class DFANode {
             if (this.sMap == null) {
                 this.sMap = new HashMap<>();
             }
+            this.sMap.put(s, node);
         }
-        this.sMap.put(s, node);
         node.parent = this;
     }
 

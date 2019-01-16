@@ -1,11 +1,15 @@
 package org.alking.swf;
 
+import com.github.houbb.opencc4j.util.ZhConverterUtil;
+
 import java.util.*;
 
 /**
  *
  */
 public class DFAFilter {
+
+    private static final int PINYIN_MAX = 6;
 
     private final Map<Character, DFANode> cMap = new HashMap<>();
 
@@ -162,20 +166,144 @@ public class DFAFilter {
             return Collections.emptyList();
         }
 
-        char[] chars = word.toCharArray();
+
+
 
 
         return null;
     }
 
-    private DFANode firstNode(char c) {
 
 
-        return null;
 
+    class Match {
+
+        DFANode node;
+
+        int size;
+
+        Match(DFANode node, int size) {
+            this.node = node;
+            this.size = size;
+        }
     }
 
-    private void matchChars(final char[] chars, int idx, final DFANode prev, final int start, final List<DFAMatch> acc) {
+
+    protected List<Match> findMatch(final DFANode prev,final String word, final int start){
+        List<Match> acc = new ArrayList<>();
+        if(start > word.length() - 1){
+            return acc;
+        }
+        final char c = word.charAt(start);
+        if(supportStopWord & stopWordSet.contains(c)){
+            acc.add(new Match(prev,1));
+            return acc;
+        }
+
+        if(prev == null){
+
+            if(cMap.containsKey(c)){
+                acc.add( new Match(cMap.get(c),1));
+            }
+
+            if(supportPinyin){
+                int sum = 0;
+                StringBuilder sb = new StringBuilder();
+                for(int i = start;i < word.length();i++){
+                    if(i - start > PINYIN_MAX){
+                        // 超过拼音的最大长度
+                        break;
+                    }
+                    char t = word.charAt(i);
+                    if(supportStopWord && stopWordSet.contains(t)){
+                        sum ++;
+                    }else if(Character.isLetter(t)){
+                        sb.append(Character.toUpperCase(t));
+                        sum ++;
+                        if(sMap.containsKey(sb.toString())){
+                            acc.add( new Match(sMap.get(sb.toString()),sum));
+                        }
+                    }
+                }
+            }
+
+            if(ignoreCase && Character.isUpperCase(c)){
+                char lower = Character.toLowerCase(c);
+                if(cMap.containsKey(lower)){
+                    acc.add(new Match(cMap.get(lower),1));
+                }
+            }
+
+            if(supportSimple){
+                char simple =  ZhConverterUtil.convertToSimple(String.valueOf(c)).toCharArray()[0];
+                if(simple != c && cMap.containsKey(simple)){
+                    acc.add(new Match(cMap.get(simple),1));
+                }
+            }
+
+            if(supportDbc){
+                char dbc = BCConvert.sbc2dbc(c);
+                if(dbc != c && cMap.containsKey(dbc)){
+                    acc.add(new Match(cMap.get(dbc),1));
+                }
+            }
+
+            return acc;
+        }
+        // prev is not null
+        DFANode node = prev.getNode(c);
+        if(node != null){
+            acc.add( new Match(node,1));
+        }
+        if(supportPinyin){
+            int sum = 0;
+            StringBuilder sb = new StringBuilder();
+            for(int i = start;i < word.length();i++){
+                if(i - start > PINYIN_MAX){
+                    // 超过拼音的最大长度
+                    break;
+                }
+                char t = word.charAt(i);
+                if(supportStopWord && stopWordSet.contains(t)){
+                    sum ++;
+                }else if(Character.isLetter(t)){
+                    sb.append(Character.toUpperCase(t));
+                    sum ++;
+                    node = prev.getNode(sb.toString());
+                    if(node != null){
+                        acc.add( new Match(node,sum));
+                    }
+                }
+            }
+        }
+
+        if(ignoreCase && Character.isUpperCase(c)){
+            char lower = Character.toLowerCase(c);
+            node = prev.getNode(lower);
+            if(node != null){
+                acc.add(new Match(node,1));
+            }
+        }
+
+        if(supportSimple){
+            char simple =  ZhConverterUtil.convertToSimple(String.valueOf(c)).toCharArray()[0];
+            node = prev.getNode(simple);
+            if(simple != c && node != null){
+                acc.add(new Match(node,1));
+            }
+        }
+
+        if(supportDbc){
+            char dbc = BCConvert.sbc2dbc(c);
+            node = prev.getNode(dbc);
+            if(dbc != c && node != null){
+                acc.add(new Match(node,1));
+            }
+        }
+        return acc;
+    }
+
+    private void matchWord(final char[] chars, int idx, final DFANode prev, final int start, final List<DFAMatch> acc) {
 
         if (prev != null && prev.leaf) {
             DFAMatch match = new DFAMatch(start, idx - 1, prev);
