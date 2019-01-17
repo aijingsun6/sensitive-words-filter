@@ -115,11 +115,11 @@ public class DFAFilter {
             }
             return;
         }
-        // c is not stop word
+
         DFANode node = new DFANode(c, last, score);
-        if(prev == null && cMap.containsKey(c) ){
+        if (prev == null && cMap.containsKey(c)) {
             node = cMap.get(c);
-        }else if(prev != null && (prev.getNode(c)!= null)){
+        } else if (prev != null && (prev.getNode(c) != null)) {
             node = prev.getNode(c);
         }
         if (prev == null) {
@@ -170,13 +170,25 @@ public class DFAFilter {
         if (isEmpty(word)) {
             return Collections.emptyList();
         }
-
-
-        List<DFAMatch> acc = new LinkedList<>();
+        List<DFAMatch> ret = new LinkedList<>();
         for (int i = 0; i < word.length(); i++) {
+            List<DFAMatch> acc = new LinkedList<>();
             matchWord2(null, word, i, i, acc);
+            ret.addAll(acc);
         }
-        return acc;
+        return ret;
+    }
+
+    private boolean allStopWord(final String word, final DFAMatch m1, final DFAMatch m2) {
+        if (!supportStopWord) {
+            return false;
+        }
+        for (int idx = m1.getEnd() + 1; idx <= m2.getEnd(); idx++) {
+            if (!stopWordSet.contains(word.charAt(idx))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void matchWord2(final DFAMatch prev, final String word, final int start, final int originStart, final List<DFAMatch> acc) {
@@ -187,13 +199,26 @@ public class DFAFilter {
         if (!findList.isEmpty()) {
             for (DFAMatch match : findList) {
                 if (match.getMatched().leaf) {
-                    acc.add(new DFAMatch(originStart, match.getEnd(), match.getMatched()));
+                    DFAMatch add = new DFAMatch(originStart, match.getEnd(), match.getMatched());
+                    if (acc.isEmpty()) {
+                        acc.add(add);
+                    } else {
+                        boolean same = false;
+                        for (DFAMatch t : acc) {
+                            if (allStopWord(word, t, add)) {
+                                same = true;
+                                break;
+                            }
+                        }
+                        if (!same) {
+                            acc.add(add);
+                        }
+                    }
                 }
                 matchWord2(match, word, match.getEnd() + 1, originStart, acc);
             }
         }
     }
-
 
     protected List<DFAMatch> findMatch(final DFAMatch prev, final String word, final int start) {
         List<DFAMatch> acc = new ArrayList<>();
@@ -315,5 +340,18 @@ public class DFAFilter {
         return acc;
     }
 
+    public String replaceWord(final String origin, final List<DFAMatch> matches, final char c) {
+        if (isEmpty(origin)) {
+            return origin;
+        }
+        char[] chars = origin.toCharArray();
+        int length = chars.length;
+        for (DFAMatch match : matches) {
+            for (int idx = match.getStart(); idx <= match.getEnd() && idx < length; idx++) {
+                chars[idx] = c;
+            }
+        }
+        return new String(chars);
+    }
 
 }
