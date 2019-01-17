@@ -102,27 +102,27 @@ public class DFAFilter {
         putWord(null, word, 0, score);
     }
 
-    private void putWord(final DFANode acc, final String word, final int idx, final int score) {
+    private void putWord(final DFANode prev, final String word, final int idx, final int score) {
         final boolean last = idx == word.length() - 1;
         final char c = word.charAt(idx);
         if (supportStopWord && stopWordSet.contains(c)) {
             // c is stop word
-            if (last && acc != null) {
-                acc.leaf = true;
-                acc.score = score;
+            if (last && prev != null) {
+                prev.leaf = true;
+                prev.score = score;
             } else if (!last) {
-                putWord(acc, word, idx + 1, score);
+                putWord(prev, word, idx + 1, score);
             }
             return;
         }
         // c is not stop word
         DFANode node = new DFANode(c, last, score);
-        if(acc == null && cMap.containsKey(c) ){
+        if(prev == null && cMap.containsKey(c) ){
             node = cMap.get(c);
-        }else if(acc != null && (acc.getNode(c)!= null)){
-            node = acc.getNode(c);
+        }else if(prev != null && (prev.getNode(c)!= null)){
+            node = prev.getNode(c);
         }
-        if (acc == null) {
+        if (prev == null) {
 
             this.cMap.put(c, node);
 
@@ -143,22 +143,22 @@ public class DFAFilter {
             }
 
         } else {
-            acc.putNode(c, node);
+            prev.putNode(c, node);
 
             if (this.supportSimple && node.simple != 0 && !node.simpleSame()) {
-                acc.putNode(node.simple, node);
+                prev.putNode(node.simple, node);
             }
 
             if (this.supportPinyin && !isEmpty(node.pinyin)) {
-                acc.putNode(node.pinyin, node);
+                prev.putNode(node.pinyin, node);
             }
 
             if (this.supportDbc && !node.dbcSame()) {
-                acc.putNode(node.dbc, node);
+                prev.putNode(node.dbc, node);
             }
 
             if (this.ignoreCase && !node.lowerSame()) {
-                acc.putNode(node.lower, node);
+                prev.putNode(node.lower, node);
             }
         }
         if (!last) {
