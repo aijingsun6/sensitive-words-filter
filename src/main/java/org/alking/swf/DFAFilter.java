@@ -198,7 +198,9 @@ public class DFAFilter {
         }
         final char c = word.charAt(start);
         if(supportStopWord & stopWordSet.contains(c)){
-            acc.add(new DFAMatch(start,start,prev.getMatched()));
+            if(prev != null){
+                acc.add(new DFAMatch(start,start,prev.getMatched()));
+            }
             return acc;
         }
 

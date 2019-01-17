@@ -197,4 +197,16 @@ public class DFAFilterTest {
         Assert.assertEquals(0,ret.size());
     }
 
+    @Test
+    public void findMatchTest7(){
+        DFAFilter dfaFilter = new DFAFilter();
+        dfaFilter.setSupportPinyin( true );
+        dfaFilter.setSupportStopWord( true );
+        dfaFilter.setStopWord("|");
+        dfaFilter.putWord("fuck",1);
+        List<DFAMatch> ret = dfaFilter.findMatch(null,"|fuck",0);
+        Assert.assertEquals(0,ret.size());
+    }
+
+
 }

@@ -56,6 +56,8 @@ public class MatchWordTest {
         dfaFilter.putWord("fuck",1);
         List<DFAMatch> matchList = dfaFilter.matchWord("i f|u#c|k u");
         Assert.assertEquals(1,matchList.size());
-
+        Assert.assertEquals(2, matchList.get(0).getStart());
+        Assert.assertEquals(8, matchList.get(0).getEnd());
+        Assert.assertEquals("fuck", matchList.get(0).getWord());
     }
 }
