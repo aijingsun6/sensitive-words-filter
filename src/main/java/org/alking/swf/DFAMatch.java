@@ -32,9 +32,6 @@ public class DFAMatch {
         this.matched = matched;
     }
 
-    public DFAMatch() {
-    }
-
     public DFAMatch(int start, int end, DFANode matched) {
         this.start = start;
         this.end = end;
@@ -51,8 +48,12 @@ public class DFAMatch {
         return sb.reverse().toString();
     }
 
-    public int size(){
+    public int size() {
         return end - start + 1;
+    }
+
+    public int score() {
+        return matched.score;
     }
 
 }

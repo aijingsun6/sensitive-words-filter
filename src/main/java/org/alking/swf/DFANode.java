@@ -6,13 +6,13 @@ import com.github.promeg.pinyinhelper.Pinyin;
 import java.util.HashMap;
 import java.util.Map;
 
-class DFANode {
+final class DFANode {
 
-    protected char c;
+    protected final char c;
 
-    protected char lower;
+    protected final char lower;
 
-    protected char dbc;
+    protected final char dbc;
 
     private Map<Character, DFANode> cMap;
 
@@ -34,7 +34,7 @@ class DFANode {
 
     public DFANode getNode(char c) {
         synchronized (cMapLock) {
-            if(cMap == null){
+            if (cMap == null) {
                 return null;
             }
             return this.cMap.get(c);
@@ -43,7 +43,7 @@ class DFANode {
 
     public DFANode getNode(String s) {
         synchronized (sMapLock) {
-            if(sMap == null){
+            if (sMap == null) {
                 return null;
             }
             return this.sMap.get(s);
@@ -68,10 +68,6 @@ class DFANode {
             this.sMap.put(s, node);
         }
         node.parent = this;
-    }
-
-    public DFANode(char c) {
-        this(c, false, 0);
     }
 
     public DFANode(char c, boolean leaf, int score) {
