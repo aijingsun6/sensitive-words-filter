@@ -9,9 +9,9 @@ public class DFAFilterTest {
 
     @Test
     public void findMatchTest1() {
-        DFAFilter<Integer> dfaFilter = new DFAFilter<>();
+        DFAFilter dfaFilter = new DFAFilter();
         dfaFilter.putWord("fuck", 1);
-        List<DFAMatch<Integer>> ret = dfaFilter.matchWord("fuck");
+        List<DFAMatch> ret = dfaFilter.matchWord("fuck");
         Assert.assertEquals(1, ret.size());
     }
 

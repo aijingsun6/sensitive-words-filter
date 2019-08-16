@@ -3,7 +3,7 @@ package org.alking.swf;
 import java.util.HashMap;
 import java.util.Map;
 
-final class DFANode<T extends Comparable<T>> {
+final class DFANode {
 
     protected final char ch;
 
@@ -11,35 +11,35 @@ final class DFANode<T extends Comparable<T>> {
 
     protected String word = null;
 
-    protected T ext;
+    protected Comparable ext;
 
     protected DFANode parent;
 
     /**
      * chat -> node
      */
-    private Map<Character, DFANode<T>> cMap = new HashMap<>(0);
+    private Map<Character, DFANode> cMap = new HashMap<>(0);
 
     /**
      * string -> node
      * 用于拼音
      */
-    private Map<String, DFANode<T>> sMap = new HashMap<>(0);
+    private Map<String, DFANode> sMap = new HashMap<>(0);
 
-    public DFANode<T> getNode(char c) {
+    public DFANode getNode(char c) {
         return this.cMap.get(c);
     }
 
-    public DFANode<T> getNode(String s) {
+    public DFANode getNode(String s) {
         return this.sMap.get(s);
     }
 
-    public void putNode(char c, DFANode<T> node) {
+    public void putNode(char c, DFANode node) {
         this.cMap.put(c, node);
         node.parent = this;
     }
 
-    public void putNode(String s, DFANode<T> node) {
+    public void putNode(String s, DFANode node) {
         this.sMap.put(s, node);
         node.parent = this;
     }

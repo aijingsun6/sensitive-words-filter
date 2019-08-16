@@ -1,12 +1,12 @@
 package org.alking.swf;
 
-public class DFAMatch <T extends Comparable<T>>{
+public class DFAMatch {
 
     private int start;
 
     private int end;
 
-    private DFANode<T> matched;
+    private DFANode matched;
 
     public int getStart() {
         return start;
@@ -16,11 +16,11 @@ public class DFAMatch <T extends Comparable<T>>{
         return end;
     }
 
-    public DFANode<T> getMatched() {
+    public DFANode getMatched() {
         return matched;
     }
 
-    public DFAMatch(int start, int end, DFANode<T> matched) {
+    public DFAMatch(int start, int end, DFANode matched) {
         this.start = start;
         this.end = end;
         this.matched = matched;

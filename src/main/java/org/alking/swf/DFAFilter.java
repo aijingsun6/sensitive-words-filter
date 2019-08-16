@@ -8,11 +8,11 @@ import java.util.*;
 /**
  *
  */
-public class DFAFilter<T extends Comparable<T>> {
+public class DFAFilter {
 
     private static final int PINYIN_MAX = 6;
 
-    private final DFANode<T> root = new DFANode<>('R', false);
+    private final DFANode root = new DFANode('R', false);
 
     private final Set<Character> stopWordSet = new HashSet<>();
     /**
@@ -95,14 +95,14 @@ public class DFAFilter<T extends Comparable<T>> {
         }
     }
 
-    public void putWord(final String word, final T ext) {
+    public void putWord(final String word, final Comparable ext) {
         if (isEmpty(word)) {
             return;
         }
         putWord(this.root, word, 0, ext);
     }
 
-    private void putWord(final DFANode<T> prev, final String word, final int idx, final T ext) {
+    private void putWord(final DFANode prev, final String word, final int idx, final Comparable ext) {
         final boolean last = idx == word.length() - 1;
         final char ch = word.charAt(idx);
         if (supportStopWord && stopWordSet.contains(ch)) {
@@ -129,10 +129,10 @@ public class DFAFilter<T extends Comparable<T>> {
         }
     }
 
-    private void putCh(final DFANode<T> prev, final String word, final int idx, char ch, boolean last, final T ext) {
-        DFANode<T> find = prev.getNode(ch);
+    private void putCh(final DFANode prev, final String word, final int idx, char ch, boolean last, final Comparable ext) {
+        DFANode find = prev.getNode(ch);
         if (find == null) {
-            find = new DFANode<>(ch, last);
+            find = new DFANode(ch, last);
             prev.putNode(ch, find);
         }
 
@@ -151,13 +151,13 @@ public class DFAFilter<T extends Comparable<T>> {
         this.putWord(find, word, idx + 1, ext);
     }
 
-    private void putPinyin(final DFANode<T> prev, final String word, final int idx, String pinyin, boolean last, final T ext) {
-        DFANode<T> find = prev.getNode(pinyin);
+    private void putPinyin(final DFANode prev, final String word, final int idx, String pinyin, boolean last, final Comparable ext) {
+        DFANode find = prev.getNode(pinyin);
         if (find == null) {
             char ch = word.charAt(idx);
             find = prev.getNode(ch);
             if (find == null) {
-                find = new DFANode<>(ch, last);
+                find = new DFANode(ch, last);
             }
             prev.putNode(pinyin, find);
         }
@@ -175,18 +175,18 @@ public class DFAFilter<T extends Comparable<T>> {
     }
 
 
-    public List<DFAMatch<T>> matchWord(final String word) {
+    public List<DFAMatch> matchWord(final String word) {
         if (isEmpty(word)) {
             return Collections.emptyList();
         }
-        List<DFAMatch<T>> acc = new LinkedList<>();
+        List<DFAMatch> acc = new LinkedList<>();
         for (int i = 0; i < word.length(); i++) {
             matchWord2(this.root, word, i, i, acc);
         }
         return acc;
     }
 
-    private void matchWord2(final DFANode<T> prev, final String word, final int originStart, final int start, final List<DFAMatch<T>> acc) {
+    private void matchWord2(final DFANode prev, final String word, final int originStart, final int start, final List<DFAMatch> acc) {
         if (start > word.length() - 1) {
             return;
         }
@@ -199,11 +199,11 @@ public class DFAFilter<T extends Comparable<T>> {
         }
 
         // 字符寻找
-        DFANode<T> cNode = prev.getNode(ch);
+        DFANode cNode = prev.getNode(ch);
         if (cNode != null) {
             if (cNode.leaf) {
                 // 叶子节点
-                acc.add(new DFAMatch<>(originStart, start, cNode));
+                acc.add(new DFAMatch(originStart, start, cNode));
             }
             matchWord2(cNode, word, originStart, start + 1, acc);
         }
@@ -251,24 +251,24 @@ public class DFAFilter<T extends Comparable<T>> {
     }
 
 
-    private void matchWordChar(final char oriCh, final char ch, final DFANode<T> prev, final String word, final int originStart, final int start, final List<DFAMatch<T>> acc) {
+    private void matchWordChar(final char oriCh, final char ch, final DFANode prev, final String word, final int originStart, final int start, final List<DFAMatch> acc) {
         if (oriCh == ch) {
             return;
         }
-        DFANode<T> cNode = prev.getNode(ch);
+        DFANode cNode = prev.getNode(ch);
         if (cNode != null) {
             if (cNode.leaf) {
-                acc.add(new DFAMatch<>(originStart, start, cNode));
+                acc.add(new DFAMatch(originStart, start, cNode));
             }
             matchWord2(cNode, word, originStart, start + 1, acc);
         }
     }
 
-    private void matchWordPinyin(final String pinyin, final DFANode<T> prev, final String word, final int originStart, final int start, final List<DFAMatch<T>> acc) {
-        DFANode<T> sNode = prev.getNode(pinyin);
+    private void matchWordPinyin(final String pinyin, final DFANode prev, final String word, final int originStart, final int start, final List<DFAMatch> acc) {
+        DFANode sNode = prev.getNode(pinyin);
         if (sNode != null) {
             if (sNode.leaf) {
-                acc.add(new DFAMatch<>(originStart, start, sNode));
+                acc.add(new DFAMatch(originStart, start, sNode));
             }
             matchWord2(sNode, word, originStart, start + 1, acc);
         }
