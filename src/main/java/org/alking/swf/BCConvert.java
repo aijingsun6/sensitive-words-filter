@@ -1,5 +1,8 @@
 package org.alking.swf;
 
+/**
+ * 全角，半角字符(char)之间的转化
+ */
 public class BCConvert {
 
     public static final char SBC_SPACE = 12288; // 全角空格 12288
@@ -31,21 +34,6 @@ public class BCConvert {
 
         return src;
     }
-
-    /**
-     * 全角转半角
-     */
-    public static String sbc2dbcCase(String src) {
-        if (src == null) {
-            return null;
-        }
-        char[] c = src.toCharArray();
-        for (int i = 0; i < c.length; i++) {
-            c[i] = sbc2dbc(c[i]);
-        }
-        return new String(c);
-    }
-
     /**
      * 半角转全角
      */
@@ -57,22 +45,6 @@ public class BCConvert {
             return (char) (src + DBC_SBC_STEP);
         }
         return src;
-    }
-
-    /**
-     * 半角转全角
-     */
-    public static String dbc2sbcCase(String src) {
-        if (src == null) {
-            return null;
-        }
-
-        char[] c = src.toCharArray();
-        for (int i = 0; i < c.length; i++) {
-            c[i] = dbc2sbc(c[i]);
-        }
-
-        return new String(c);
     }
 
     private BCConvert(){}
