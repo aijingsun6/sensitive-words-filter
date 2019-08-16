@@ -1,30 +1,39 @@
 package org.alking.swf;
 
 import com.github.houbb.opencc4j.util.ZhConverterUtil;
+import com.github.promeg.pinyinhelper.Pinyin;
 
 import java.util.*;
 
 /**
  *
  */
-public class DFAFilter {
+public class DFAFilter<T extends Comparable<T>> {
 
     private static final int PINYIN_MAX = 6;
 
-    private final Map<Character, DFANode> cMap = new HashMap<>();
-
-    private final Map<String, DFANode> sMap = new HashMap<>();
+    private final DFANode<T> root = new DFANode<>('R', false);
 
     private final Set<Character> stopWordSet = new HashSet<>();
-
+    /**
+     * 是否支持拼音，配置汉字只能识别汉字，不能识别拼音
+     */
     private boolean supportPinyin = false;
-
+    /**
+     * 忽略大小写，默认大小写敏感
+     */
     private boolean ignoreCase = false;
-
-    private boolean supportSimple = false;
-
+    /**
+     * 支持简体，繁体，默认不支持，配置简体只能识别简体
+     */
+    private boolean supportSimpleTraditional = false;
+    /**
+     * 支持半角全角，默认不支持，配置半角只能识别半角
+     */
     private boolean supportDbc = false;
-
+    /**
+     * 支持停顿词，默认不支持，字之间使用别的字符隔开不识别
+     */
     private boolean supportStopWord = false;
 
     public boolean isSupportPinyin() {
@@ -43,12 +52,8 @@ public class DFAFilter {
         this.ignoreCase = ignoreCase;
     }
 
-    public boolean isSupportSimple() {
-        return supportSimple;
-    }
-
-    public void setSupportSimple(boolean supportSimple) {
-        this.supportSimple = supportSimple;
+    public boolean isSupportSimpleTraditional() {
+        return supportSimpleTraditional;
     }
 
     public boolean isSupportDbc() {
@@ -67,12 +72,8 @@ public class DFAFilter {
         this.supportStopWord = supportStopWord;
     }
 
-    public Map<Character, DFANode> getcMap() {
-        return cMap;
-    }
-
-    public Map<String, DFANode> getsMap() {
-        return sMap;
+    public DFANode getRoot() {
+        return getRoot();
     }
 
     public DFAFilter() {
@@ -94,250 +95,183 @@ public class DFAFilter {
         }
     }
 
-    public void putWord(final String word, final int score) {
+    public void putWord(final String word, final T ext) {
         if (isEmpty(word)) {
             return;
         }
-
-        putWord(null, word, 0, score);
+        putWord(this.root, word, 0, ext);
     }
 
-    private void putWord(final DFANode prev, final String word, final int idx, final int score) {
+    private void putWord(final DFANode<T> prev, final String word, final int idx, final T ext) {
         final boolean last = idx == word.length() - 1;
-        final char c = word.charAt(idx);
-        if (supportStopWord && stopWordSet.contains(c)) {
-            // c is stop word
-            if (last && prev != null) {
+        final char ch = word.charAt(idx);
+        if (supportStopWord && stopWordSet.contains(ch)) {
+            // c 是停顿词
+            if (last && prev != this.root) {
                 prev.leaf = true;
-                prev.score = score;
-            } else if (!last) {
-                putWord(prev, word, idx + 1, score);
+                if (prev.ext == null) {
+                    prev.ext = ext;
+                } else if (ext != null && ext.compareTo(prev.ext) > 0) {
+                    prev.ext = ext;
+                }
+                return;
+            }
+            putWord(prev, word, idx + 1, ext);
+            return;
+        }
+        // c 不是停顿词
+
+        //先进行字符操作
+        this.putCh(prev, word, idx, ch, last, ext);
+        if (this.supportPinyin && Pinyin.isChinese(ch)) {
+            String pinyin = Pinyin.toPinyin(ch);
+            this.putPinyin(prev, word, idx, pinyin, last, ext);
+        }
+    }
+
+    private void putCh(final DFANode<T> prev, final String word, final int idx, char ch, boolean last, final T ext) {
+        DFANode<T> find = prev.getNode(ch);
+        if (find == null) {
+            find = new DFANode<>(ch, last);
+            prev.putNode(ch, find);
+        }
+
+        if (last) {
+            find.leaf = true;
+            find.word = word;
+
+            if (find.ext == null) {
+                find.ext = ext;
+            } else if (ext != null && ext.compareTo(find.ext) > 0) {
+                find.ext = ext;
+            }
+
+            return;
+        }
+        this.putWord(find, word, idx + 1, ext);
+    }
+
+    private void putPinyin(final DFANode<T> prev, final String word, final int idx, String pinyin, boolean last, final T ext) {
+        DFANode<T> find = prev.getNode(pinyin);
+        if (find == null) {
+            char ch = word.charAt(idx);
+            find = prev.getNode(ch);
+            if (find == null) {
+                find = new DFANode<>(ch, last);
+            }
+            prev.putNode(pinyin, find);
+        }
+        if (last) {
+            find.leaf = true;
+            find.word = word;
+            if (find.ext == null) {
+                find.ext = ext;
+            } else if (ext != null && ext.compareTo(find.ext) > 0) {
+                find.ext = ext;
             }
             return;
         }
-
-        DFANode node = new DFANode(c, last, score);
-        if (prev == null && cMap.containsKey(c)) {
-            node = cMap.get(c);
-        } else if (prev != null && (prev.getNode(c) != null)) {
-            node = prev.getNode(c);
-        }
-        if (prev == null) {
-
-            this.cMap.put(c, node);
-
-            if (this.supportSimple && node.simple != 0 && !node.simpleSame()) {
-                this.cMap.put(node.simple, node);
-            }
-
-            if (this.supportPinyin && !isEmpty(node.pinyin)) {
-                this.sMap.put(node.pinyin, node);
-            }
-
-            if (this.supportDbc && !node.dbcSame()) {
-                this.cMap.put(node.dbc, node);
-            }
-
-            if (this.ignoreCase && !node.lowerSame()) {
-                this.cMap.put(node.lower, node);
-            }
-
-        } else {
-            prev.putNode(c, node);
-
-            if (this.supportSimple && node.simple != 0 && !node.simpleSame()) {
-                prev.putNode(node.simple, node);
-            }
-
-            if (this.supportPinyin && !isEmpty(node.pinyin)) {
-                prev.putNode(node.pinyin, node);
-            }
-
-            if (this.supportDbc && !node.dbcSame()) {
-                prev.putNode(node.dbc, node);
-            }
-
-            if (this.ignoreCase && !node.lowerSame()) {
-                prev.putNode(node.lower, node);
-            }
-        }
-        if (!last) {
-            putWord(node, word, idx + 1, score);
-        }
+        this.putWord(find, word, idx + 1, ext);
     }
 
-    public List<DFAMatch> matchWord(final String word) {
+
+    public List<DFAMatch<T>> matchWord(final String word) {
         if (isEmpty(word)) {
             return Collections.emptyList();
         }
-        List<DFAMatch> ret = new LinkedList<>();
+        List<DFAMatch<T>> acc = new LinkedList<>();
         for (int i = 0; i < word.length(); i++) {
-            List<DFAMatch> acc = new LinkedList<>();
-            matchWord2(null, word, i, i, acc);
-            ret.addAll(acc);
+            matchWord2(this.root, word, i, i, acc);
         }
-        return ret;
+        return acc;
     }
 
-    private boolean allStopWord(final String word, final DFAMatch m1, final DFAMatch m2) {
-        if (!supportStopWord) {
-            return false;
-        }
-        for (int idx = m1.getEnd() + 1; idx <= m2.getEnd(); idx++) {
-            if (!stopWordSet.contains(word.charAt(idx))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void matchWord2(final DFAMatch prev, final String word, final int start, final int originStart, final List<DFAMatch> acc) {
+    private void matchWord2(final DFANode<T> prev, final String word, final int originStart, final int start, final List<DFAMatch<T>> acc) {
         if (start > word.length() - 1) {
             return;
         }
-        List<DFAMatch> findList = findMatch(prev, word, start);
-        if (!findList.isEmpty()) {
-            for (DFAMatch match : findList) {
-                if (match.getMatched().leaf) {
-                    DFAMatch add = new DFAMatch(originStart, match.getEnd(), match.getMatched());
-                    if (acc.isEmpty()) {
-                        acc.add(add);
-                    } else {
-                        boolean same = false;
-                        for (DFAMatch t : acc) {
-                            if (allStopWord(word, t, add)) {
-                                same = true;
-                                break;
-                            }
-                        }
-                        if (!same) {
-                            acc.add(add);
-                        }
-                    }
+        char ch = word.charAt(start);
+
+        if (this.supportStopWord && this.stopWordSet.contains(ch)) {
+            //停顿词
+            matchWord2(prev, word, originStart, start + 1, acc);
+            return;
+        }
+
+        // 字符寻找
+        DFANode<T> cNode = prev.getNode(ch);
+        if (cNode != null) {
+            if (cNode.leaf) {
+                // 叶子节点
+                acc.add(new DFAMatch<>(originStart, start, cNode));
+            }
+            matchWord2(cNode, word, originStart, start + 1, acc);
+        }
+
+        if (this.ignoreCase) {
+            // 忽略大小写
+            char low = Character.toLowerCase(ch);
+            char upper = Character.toUpperCase(ch);
+            this.matchWordChar(ch, low, prev, word, originStart, start, acc);
+            this.matchWordChar(ch, upper, prev, word, originStart, start, acc);
+        }
+
+        if (this.supportDbc) {
+            // 支持全角半角
+            char dbc = BCConvert.sbc2dbc(ch);
+            char sbc = BCConvert.dbc2sbc(ch);
+            this.matchWordChar(ch, dbc, prev, word, originStart, start, acc);
+            this.matchWordChar(ch, sbc, prev, word, originStart, start, acc);
+        }
+
+        if (this.supportSimpleTraditional && Pinyin.isChinese(ch)) {
+            // 支持简体，繁体
+            String simple = ZhConverterUtil.convertToSimple(String.valueOf(ch));
+            char simpleChar = simple.charAt(0);
+            String trad = ZhConverterUtil.convertToTraditional(String.valueOf(ch));
+            char tradChar = trad.charAt(0);
+            this.matchWordChar(ch, simpleChar, prev, word, originStart, start, acc);
+            this.matchWordChar(ch, tradChar, prev, word, originStart, start, acc);
+        }
+
+        if (this.supportPinyin && Character.isLetter(ch)) {
+            // 支持拼音，但是要是 letter
+            StringBuilder sb = new StringBuilder();
+            sb.append(Character.toUpperCase(ch));
+            for (int i = 1; i < PINYIN_MAX; i++) {
+                //拼音最多5个字符
+                char c = word.charAt(start + i);
+                if (!Character.isLetter(c)) {
+                    break;
                 }
-                matchWord2(match, word, match.getEnd() + 1, originStart, acc);
+                sb.append(Character.toUpperCase(c));
+                this.matchWordPinyin(sb.toString(), prev, word, originStart, start + i, acc);
             }
         }
     }
 
-    protected List<DFAMatch> findMatch(final DFAMatch prev, final String word, final int start) {
-        List<DFAMatch> acc = new ArrayList<>();
-        if (start > word.length() - 1) {
-            return acc;
+
+    private void matchWordChar(final char oriCh, final char ch, final DFANode<T> prev, final String word, final int originStart, final int start, final List<DFAMatch<T>> acc) {
+        if (oriCh == ch) {
+            return;
         }
-        final char c = word.charAt(start);
-        if (supportStopWord & stopWordSet.contains(c)) {
-            if (prev != null) {
-                acc.add(new DFAMatch(start, start, prev.getMatched()));
+        DFANode<T> cNode = prev.getNode(ch);
+        if (cNode != null) {
+            if (cNode.leaf) {
+                acc.add(new DFAMatch<>(originStart, start, cNode));
             }
-            return acc;
+            matchWord2(cNode, word, originStart, start + 1, acc);
         }
+    }
 
-        if (prev == null) {
-
-            if (cMap.containsKey(c)) {
-                acc.add(new DFAMatch(start, start, cMap.get(c)));
+    private void matchWordPinyin(final String pinyin, final DFANode<T> prev, final String word, final int originStart, final int start, final List<DFAMatch<T>> acc) {
+        DFANode<T> sNode = prev.getNode(pinyin);
+        if (sNode != null) {
+            if (sNode.leaf) {
+                acc.add(new DFAMatch<>(originStart, start, sNode));
             }
-
-            if (supportPinyin) {
-                int sum = 0;
-                StringBuilder sb = new StringBuilder();
-                for (int i = start; i < word.length(); i++) {
-                    if (i - start > PINYIN_MAX) {
-                        // 超过拼音的最大长度
-                        break;
-                    }
-                    char t = word.charAt(i);
-                    if (supportStopWord && stopWordSet.contains(t)) {
-                        sum++;
-                    } else if (Character.isLetter(t)) {
-                        sb.append(Character.toUpperCase(t));
-                        sum++;
-                        if (sMap.containsKey(sb.toString())) {
-                            acc.add(new DFAMatch(start, start + sum - 1, sMap.get(sb.toString())));
-                        }
-                    } else {
-                        break;
-                    }
-                }
-            }
-
-            if (ignoreCase && Character.isUpperCase(c)) {
-                char lower = Character.toLowerCase(c);
-                if (cMap.containsKey(lower)) {
-                    acc.add(new DFAMatch(start, start, cMap.get(lower)));
-                }
-            }
-
-            if (supportSimple) {
-                char simple = ZhConverterUtil.convertToSimple(String.valueOf(c)).toCharArray()[0];
-                if (simple != c && cMap.containsKey(simple)) {
-                    acc.add(new DFAMatch(start, start, cMap.get(simple)));
-                }
-            }
-
-            if (supportDbc) {
-                char dbc = BCConvert.sbc2dbc(c);
-                if (dbc != c && cMap.containsKey(dbc)) {
-                    acc.add(new DFAMatch(start, start, cMap.get(dbc)));
-                }
-            }
-
-            return acc;
+            matchWord2(sNode, word, originStart, start + 1, acc);
         }
-        // prev is not null
-        DFANode node = prev.getMatched().getNode(c);
-        if (node != null) {
-            acc.add(new DFAMatch(start, start, node));
-        }
-        if (supportPinyin) {
-            int sum = 0;
-            StringBuilder sb = new StringBuilder();
-            for (int i = start; i < word.length(); i++) {
-                if (i - start > PINYIN_MAX) {
-                    // 超过拼音的最大长度
-                    break;
-                }
-                char t = word.charAt(i);
-                if (supportStopWord && stopWordSet.contains(t)) {
-                    sum++;
-                } else if (Character.isLetter(t)) {
-                    sb.append(Character.toUpperCase(t));
-                    sum++;
-                    node = prev.getMatched().getNode(sb.toString());
-                    if (node != null) {
-                        acc.add(new DFAMatch(start, start + sum - 1, node));
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-
-        if (ignoreCase && Character.isUpperCase(c)) {
-            char lower = Character.toLowerCase(c);
-            node = prev.getMatched().getNode(lower);
-            if (node != null) {
-                acc.add(new DFAMatch(start, start, node));
-            }
-        }
-
-        if (supportSimple) {
-            char simple = ZhConverterUtil.convertToSimple(String.valueOf(c)).toCharArray()[0];
-            node = prev.getMatched().getNode(simple);
-            if (simple != c && node != null) {
-                acc.add(new DFAMatch(start, start, node));
-            }
-        }
-
-        if (supportDbc) {
-            char dbc = BCConvert.sbc2dbc(c);
-            node = prev.getMatched().getNode(dbc);
-            if (dbc != c && node != null) {
-                acc.add(new DFAMatch(start, start, node));
-            }
-        }
-        return acc;
     }
 
     public String replaceWord(final String origin, final List<DFAMatch> matches, final char c) {
