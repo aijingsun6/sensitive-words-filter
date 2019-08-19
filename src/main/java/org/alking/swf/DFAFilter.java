@@ -73,7 +73,7 @@ public class DFAFilter {
     }
 
     public DFANode getRoot() {
-        return getRoot();
+        return this.root;
     }
 
     public DFAFilter() {

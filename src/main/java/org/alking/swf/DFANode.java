@@ -26,6 +26,14 @@ final class DFANode {
      */
     private Map<String, DFANode> sMap = new HashMap<>(0);
 
+    public Map<Character, DFANode> getcMap() {
+        return cMap;
+    }
+
+    public Map<String, DFANode> getsMap() {
+        return sMap;
+    }
+
     public DFANode getNode(char c) {
         return this.cMap.get(c);
     }
