@@ -14,86 +14,32 @@ public class DFAFilter {
 
     private final DFANode root = new DFANode('R', false);
 
-    private final Set<Character> stopWordSet = new HashSet<>();
-    /**
-     * 是否支持拼音，配置汉字只能识别汉字，不能识别拼音
-     */
-    private boolean supportPinyin = false;
-    /**
-     * 忽略大小写，默认大小写敏感
-     */
-    private boolean ignoreCase = false;
-    /**
-     * 支持简体，繁体，默认不支持，配置简体只能识别简体
-     */
-    private boolean supportSimpleTraditional = false;
-    /**
-     * 支持半角全角，默认不支持，配置半角只能识别半角
-     */
-    private boolean supportDbc = false;
-    /**
-     * 支持停顿词，默认不支持，字之间使用别的字符隔开不识别
-     */
-    private boolean supportStopWord = false;
-
-    public boolean isSupportPinyin() {
-        return supportPinyin;
-    }
-
-    public void setSupportPinyin(boolean supportPinyin) {
-        this.supportPinyin = supportPinyin;
-    }
-
-    public boolean isIgnoreCase() {
-        return ignoreCase;
-    }
-
-    public void setIgnoreCase(boolean ignoreCase) {
-        this.ignoreCase = ignoreCase;
-    }
-
-    public boolean isSupportSimpleTraditional() {
-        return supportSimpleTraditional;
-    }
-
-    public boolean isSupportDbc() {
-        return supportDbc;
-    }
-
-    public void setSupportDbc(boolean supportDbc) {
-        this.supportDbc = supportDbc;
-    }
-
-    public boolean isSupportStopWord() {
-        return supportStopWord;
-    }
-
-    public void setSupportStopWord(boolean supportStopWord) {
-        this.supportStopWord = supportStopWord;
-    }
-
     public DFANode getRoot() {
         return this.root;
+    }
+
+    private DFAConfig config = new DFAConfig();
+
+    public DFAConfig getConfig() {
+        return config;
+    }
+
+    public void setConfig(DFAConfig config) {
+        this.config = config;
     }
 
     public DFAFilter() {
 
     }
 
+    public DFAFilter(DFAConfig config) {
+        this.config = config;
+    }
+
     private static boolean isEmpty(String s) {
         return s == null || s.length() < 1;
     }
 
-    public void setStopWord(String word) {
-        if (!supportStopWord) {
-            throw new IllegalStateException("stop word is not support");
-        }
-        this.stopWordSet.clear();
-        char[] chars = word.toCharArray();
-        for (char c : chars) {
-            this.stopWordSet.add(c);
-        }
-    }
 
     public void putWord(final String word, final Comparable ext) {
         if (isEmpty(word)) {
@@ -105,7 +51,7 @@ public class DFAFilter {
     private void putWord(final DFANode prev, final String word, final int idx, final Comparable ext) {
         final boolean last = idx == word.length() - 1;
         final char ch = word.charAt(idx);
-        if (supportStopWord && stopWordSet.contains(ch)) {
+        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch)) {
             // c 是停顿词
             if (last && prev != this.root) {
                 prev.leaf = true;
@@ -123,7 +69,7 @@ public class DFAFilter {
 
         //先进行字符操作
         this.putCh(prev, word, idx, ch, last, ext);
-        if (this.supportPinyin && Pinyin.isChinese(ch)) {
+        if (this.config.isSupportPinyin() && Pinyin.isChinese(ch)) {
             String pinyin = Pinyin.toPinyin(ch);
             this.putPinyin(prev, word, idx, pinyin, last, ext);
         }
@@ -192,7 +138,7 @@ public class DFAFilter {
         }
         char ch = word.charAt(start);
 
-        if (this.supportStopWord && this.stopWordSet.contains(ch)) {
+        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch)) {
             //停顿词
             matchWord2(prev, word, originStart, start + 1, acc);
             return;
@@ -208,7 +154,7 @@ public class DFAFilter {
             matchWord2(cNode, word, originStart, start + 1, acc);
         }
 
-        if (this.ignoreCase) {
+        if (this.config.isIgnoreCase()) {
             // 忽略大小写
             char low = Character.toLowerCase(ch);
             char upper = Character.toUpperCase(ch);
@@ -216,7 +162,7 @@ public class DFAFilter {
             this.matchWordChar(ch, upper, prev, word, originStart, start, acc);
         }
 
-        if (this.supportDbc) {
+        if (this.config.isSupportDbc()) {
             // 支持全角半角
             char dbc = BCConvert.sbc2dbc(ch);
             char sbc = BCConvert.dbc2sbc(ch);
@@ -224,7 +170,7 @@ public class DFAFilter {
             this.matchWordChar(ch, sbc, prev, word, originStart, start, acc);
         }
 
-        if (this.supportSimpleTraditional && Pinyin.isChinese(ch)) {
+        if (this.config.isSupportSimpleTraditional() && Pinyin.isChinese(ch)) {
             // 支持简体，繁体
             String simple = ZhConverterUtil.convertToSimple(String.valueOf(ch));
             char simpleChar = simple.charAt(0);
@@ -234,7 +180,7 @@ public class DFAFilter {
             this.matchWordChar(ch, tradChar, prev, word, originStart, start, acc);
         }
 
-        if (this.supportPinyin && Character.isLetter(ch)) {
+        if (this.config.isSupportPinyin() && Character.isLetter(ch)) {
             // 支持拼音，但是要是 letter
             StringBuilder sb = new StringBuilder();
             sb.append(Character.toUpperCase(ch));
