@@ -120,6 +120,103 @@ public class DFAFilter {
         this.putWord(find, word, idx + 1, ext);
     }
 
+    protected Map<DFANode, Integer> findMatchNode(final DFANode prev, final String word, final int idx) {
+        Map<DFANode, Integer> result = new HashMap<>();
+        char ch = word.charAt(idx);
+        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch)) {
+            result.put(prev, 1);
+            return result;
+        }
+
+        // 字符寻找
+        DFANode cNode = prev.getNode(ch);
+        if (cNode != null) {
+            result.put(cNode, 1);
+        }
+
+        if (this.config.isIgnoreCase()) {
+            // 忽略大小写
+            char low = Character.toLowerCase(ch);
+            char upper = Character.toUpperCase(ch);
+            if (low != ch) {
+                cNode = prev.getNode(low);
+            } else if (upper != ch) {
+                cNode = prev.getNode(upper);
+            }
+            if (cNode != null) {
+                result.put(cNode, 1);
+            }
+        }
+
+        if (this.config.isSupportDbc()) {
+            // 支持全角半角
+            char dbc = BCConvert.sbc2dbc(ch);
+            char sbc = BCConvert.dbc2sbc(ch);
+            if (dbc != ch) {
+                cNode = prev.getNode(dbc);
+            } else if (sbc != ch) {
+                cNode = prev.getNode(sbc);
+            }
+            if (cNode != null) {
+                result.put(cNode, 1);
+            }
+        }
+
+        if (this.config.isSupportSimpleTraditional() && Pinyin.isChinese(ch)) {
+            // 支持简体，繁体
+            String simple = ZhConverterUtil.convertToSimple(String.valueOf(ch));
+            char simpleChar = simple.charAt(0);
+            String trad = ZhConverterUtil.convertToTraditional(String.valueOf(ch));
+            char tradChar = trad.charAt(0);
+
+            if (simpleChar != ch) {
+                cNode = prev.getNode(simpleChar);
+            } else if (tradChar != ch) {
+                cNode = prev.getNode(tradChar);
+            }
+            if (cNode != null) {
+                result.put(cNode, 1);
+            }
+        }
+        if (this.config.isSupportPinyin() && Character.isLetter(ch)) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(Character.toUpperCase(ch));
+            for (int i = 1; i < PINYIN_MAX; i++) {
+                //拼音最多5个字符
+                if (idx + i < word.length()) {
+                    char c = word.charAt(idx + i);
+                    if (!Character.isLetter(c)) {
+                        break;
+                    }
+                    sb.append(Character.toUpperCase(c));
+                    String pinyin = sb.toString();
+                    cNode = prev.getNode(pinyin);
+                    if (cNode != null) {
+                        result.put(cNode, i + 1);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 最外面的一层循环
+     * TODO:不使用递归
+     */
+    protected void matchWordLoop(final DFANode prev, final String word, final int originStart, final List<DFAMatch> acc) {
+        char ch = word.charAt(originStart);
+        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch)) {
+            //第一个就是停顿字符，不用找了
+            return;
+        }
+        Map<DFANode, Integer> matched = findMatchNode(prev, word, originStart);
+        if (matched.isEmpty()) {
+            return;
+        }
+        //TODO:
+
+    }
 
     public List<DFAMatch> matchWord(final String word) {
         if (isEmpty(word)) {
@@ -138,8 +235,11 @@ public class DFAFilter {
         }
         char ch = word.charAt(start);
 
-        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch) && start != originStart) {
+        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch)) {
             //停顿词
+            if (start == originStart) {
+                return;
+            }
             matchWord2(prev, word, originStart, start + 1, acc);
             return;
         }
@@ -186,7 +286,7 @@ public class DFAFilter {
             sb.append(Character.toUpperCase(ch));
             for (int i = 1; i < PINYIN_MAX; i++) {
                 //拼音最多5个字符
-                if(start + i < word.length()){
+                if (start + i < word.length()) {
                     char c = word.charAt(start + i);
                     if (!Character.isLetter(c)) {
                         break;
