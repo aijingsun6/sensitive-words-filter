@@ -95,7 +95,7 @@ public class DFAConfig {
 
     }
 
-    public class Builder {
+    public static class Builder {
 
         private boolean supportPinyin = false;
 

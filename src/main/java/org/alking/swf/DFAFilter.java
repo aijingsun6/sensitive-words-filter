@@ -138,7 +138,7 @@ public class DFAFilter {
         }
         char ch = word.charAt(start);
 
-        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch)) {
+        if (this.config.isSupportStopWord() && this.config.containsStopChar(ch) && start != originStart) {
             //停顿词
             matchWord2(prev, word, originStart, start + 1, acc);
             return;
