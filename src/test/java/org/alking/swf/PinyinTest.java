@@ -3,17 +3,64 @@ package org.alking.swf;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.List;
+
 public class PinyinTest {
 
-//    @Test
-//    public void test1(){
-//
-//        DFAFilter dfaFilter = new DFAFilter();
-//        dfaFilter.setSupportPinyin(false);
-//        dfaFilter.putWord("我",1);
-//        Assert.assertEquals(1, dfaFilter.getcMap().size());
-//        Assert.assertEquals(0, dfaFilter.getsMap().size());
-//    }
+    @Test
+    public void pinyinTest(){
+
+        DFAFilter dfaFilter = new DFAFilter();
+        DFAConfig config = new DFAConfig.Builder().setSupportPinyin(true).build();
+        dfaFilter.setConfig(config);
+        dfaFilter.putWord("共产党", 1);
+
+        String src = "gongchandang";
+        List<DFAMatch> matchList = dfaFilter.matchWord(src);
+        String replaced = dfaFilter.replaceWord(src, matchList, '*');
+        Assert.assertEquals(1, matchList.size());
+        Assert.assertEquals("************",replaced);
+
+        src = "我爱gongchandang";
+        matchList = dfaFilter.matchWord(src);
+        replaced = dfaFilter.replaceWord(src, matchList, '*');
+        Assert.assertEquals(1, matchList.size());
+        Assert.assertEquals("我爱************",replaced);
+
+
+        src = "我爱gongchandang哈哈";
+        matchList = dfaFilter.matchWord(src);
+        replaced = dfaFilter.replaceWord(src, matchList, '*');
+        Assert.assertEquals(1, matchList.size());
+        Assert.assertEquals("我爱************哈哈",replaced);
+    }
+
+    @Test
+    public void pinyinWithStopWordTest(){
+        DFAFilter dfaFilter = new DFAFilter();
+        DFAConfig config = new DFAConfig.Builder()
+                .setSupportPinyin(true)
+                .setSupportStopWord(true)
+                .setStopWord("|")
+                .build();
+        dfaFilter.setConfig(config);
+        dfaFilter.putWord("共产党", 1);
+
+        String src = "gong|chan|dang";
+        List<DFAMatch> matchList = dfaFilter.matchWord(src);
+        String replaced = dfaFilter.replaceWord(src, matchList, '*');
+        Assert.assertEquals(1, matchList.size());
+        Assert.assertEquals("**************",replaced);
+
+        src = "gong|CHAN|dang";
+        matchList = dfaFilter.matchWord(src);
+        replaced = dfaFilter.replaceWord(src, matchList, '*');
+        Assert.assertEquals(1, matchList.size());
+        Assert.assertEquals("**************",replaced);
+
+    }
+
+
 //
 //    @Test
 //    public void test2(){

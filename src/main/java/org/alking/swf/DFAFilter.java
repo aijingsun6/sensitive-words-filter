@@ -186,12 +186,14 @@ public class DFAFilter {
             sb.append(Character.toUpperCase(ch));
             for (int i = 1; i < PINYIN_MAX; i++) {
                 //拼音最多5个字符
-                char c = word.charAt(start + i);
-                if (!Character.isLetter(c)) {
-                    break;
+                if(start + i < word.length()){
+                    char c = word.charAt(start + i);
+                    if (!Character.isLetter(c)) {
+                        break;
+                    }
+                    sb.append(Character.toUpperCase(c));
+                    this.matchWordPinyin(sb.toString(), prev, word, originStart, start + i, acc);
                 }
-                sb.append(Character.toUpperCase(c));
-                this.matchWordPinyin(sb.toString(), prev, word, originStart, start + i, acc);
             }
         }
     }
